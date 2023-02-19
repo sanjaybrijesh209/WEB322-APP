@@ -100,12 +100,84 @@ function getCategories(){
     })
 }
 
+function addPost(postData){
+    return new Promise((resolve,reject) =>{
+        if (postData.published){
+            postData.published = true;
+        }
+        else{
+            postData.published = false;
+        }
+        postData["I"] = posts.length + 1;
+        
+        posts.push(postData)
+        resolve(postData);
+
+        
+    })
+}
+
+function getPostsByCategory(category){
+    return new Promise((resolve,reject) =>{
+        let p = [];
+        for(let i in posts){
+            if (posts[i].category == category){
+                p.push(posts[i]);
+            }
+        }
+        if (p.length > 0){
+            resolve(p);
+        }
+        else{
+            reject("no results returned");
+        }
+    })
+    
+}
+
+function getPostsByMinDate(minDatestr){
+    return new Promise((resolve,reject) =>{
+        let p = [];
+        for (let i in posts){
+            if (new Date(posts[i].postDate) >= new Date(minDatestr)){
+                p.push(posts[i]);
+            }
+        }
+        if (p.length > 0){
+            resolve(p);
+        }
+        else{
+            reject("no data returned");
+        }
+    })
+}
+
+function getPostById(id){
+    return new Promise((resolve,reject) =>{
+        let p = [];
+        for (let i in posts){
+            if (posts[i]["I"] == id){
+                resolve(posts[i])
+            }
+        }
+                
+        reject('no data returned');
+        
+        
+    })
+}
+
 
 module.exports = {
     initialize:initialize,
     getAllPosts :getAllPosts,
     getPublishedPosts : getPublishedPosts,
-    getCategories : getCategories
+    getCategories : getCategories,
+    addPost : addPost,
+    getPostsByCategory: getPostsByCategory,
+    getPostById:getPostById,
+    getPostsByMinDate:getPostsByMinDate
+
 }
     
 

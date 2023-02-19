@@ -8,10 +8,21 @@
   },
   "author": "Sanjay Brijesh",
   "license": "ISC",
-  "description": "",
   "dependencies": {
+    "cloudinary": "^1.34.0",
     "express": "^4.18.2",
     "fetch-node": "^0.0.1",
-    "node-fetch": "^2.6.9"
-  }
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.6.9",
+    "streamifier": "^0.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanjaybrijesh209/WEB322-APP.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sanjaybrijesh209/WEB322-APP/issues"
+  },
+  "homepage": "https://github.com/sanjaybrijesh209/WEB322-APP#readme",
+  "description": ""
 }
