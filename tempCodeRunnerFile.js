@@ -1,1 +1,1 @@
-i
+getPublishedPostsByCategory(req.query.category);
