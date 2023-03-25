@@ -3,32 +3,35 @@
         <h2>Categories
             <a href="/categories/add" class="btn btn-success pull-right">Add Category</a>
         </h2>
-        <hr />
+        <hr/>
 
         <div class="table-responsive">
             <table class="table ">
-                <tbody>
-                    {{#unless data}}
-                    <div class="col-md-12 text-center">
-                        <strong>{{message}}</strong>
-                    </div>
-
-                    {{/unless}}
-                    {{#each data}}
-                    <thead>
-                        <tr>
-                            <th>Category ID</th>
-                            <th>Category Name</th>
-                        </tr>
-                    </thead>
+            {{#unless data}}
+            
+            <div class="col-md-12 text-center">
+                <strong>{{message}}</strong>
+            </div>
+            {{/unless}}
+            {{#if data}}
+                <thead>
                     <tr>
-                        <td><a href="/posts?category={{id}}">{{id}}</a></td>
-                        <td><a href="/posts?category={{id}}">{{category}}</a></td>
-                        <td><a class="btn btn-danger" href="categories/delete/{{id}}">delete</a></td>
+                        <th>Category ID</th>
+                        <th>Category Name</th>
                     </tr>
-                    {{/each}}
-                </tbody>
-            </table>
+                </thead>
+                    <tbody>
+                        {{#each data}}
+                        <tr>
+                            <td><a href="/posts?category={{id}}">{{id}}</a></td>
+                            <td><a href="/posts?category={{id}}">{{category}}</a></td>
+                            <td><a class="btn btn-danger" href="categories/delete/{{id}}">delete</a></td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            
+            {{/if}}
         </div>
 
     </div>
