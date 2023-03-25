@@ -231,12 +231,11 @@ app.get('/posts',(req,res) =>{
             
             
 //  Blog
-            
-app.get('/blog', async (req, res) => { 
+    
+app.get('/blog', (req, res) => { 
+    
     blog.getPublishedPosts()
     .then(async(data) =>{
-        
-        
         // to store properties for the view
         let viewData = {};
         
@@ -281,10 +280,11 @@ app.get('/blog', async (req, res) => {
     
     // render the "blog" view with all of the data (viewData)
     res.render("blog", {data: viewData})
+        
+        
+    })             
+
 })
-
-})             
-
 
 
 
