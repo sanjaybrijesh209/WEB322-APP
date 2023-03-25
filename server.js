@@ -1,17 +1,15 @@
 /*********************************************************************************
-*  WEB322 – Assignment 03
+*  WEB322 – Assignment 05
 *  I declare that this assignment is my own work in accordance with Seneca  Academic Policy.  No part 
 *  of this assignment has been copied manually or electronically from any other source 
 *  (including 3rd party web sites) or distributed to other students.
 * 
-*  Name: ____Sanjay Brijesh___ Student ID: ___156653214___________ Date: ____2023-02-19____________
+*  Name: ____Sanjay Brijesh___ Student ID: ___156653214___________ Date: ____2023-03-24____________
 *
 *  Online (Cyclic) Link: ________https://tired-undershirt-elk.cyclic.app________________________________________________
 *
 ********************************************************************************/ 
  
-
-
 const express  = require("express");
 const app = express();
 const path = require("path");
@@ -25,6 +23,8 @@ const stripJs = require('strip-js');
 const { Server } = require("http");
 
 var HTTP_PORT = process.env.port || 8080;
+
+app.use(express.static("public")); // including static file(css,images etc..)
 
 app.engine('.hbs',exphbs.engine({
     extname: '.hbs',
@@ -48,16 +48,21 @@ app.engine('.hbs',exphbs.engine({
         },
         safeHTML: function(context){
             return stripJs(context);
+        },
+        formatDate: function(dateObj){
+            let year = dateObj.getFullYear();
+            let month = (dateObj.getMonth() + 1).toString();
+            let day = dateObj.getDate().toString();
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2,'0')}`;
         }
-
 
         
     }
 }));
 app.set('view engine','.hbs');
 
+app.use(express.urlencoded({extended: true}));
 
-app.use(express.static("public")); // including static file(css,images etc..)
 
 app.use(function(req,res,next){
     let route = req.path.substring(1);
@@ -79,9 +84,18 @@ app.get("/about",(req,res) =>{
 
 
 app.get("/posts/add",(req,res) =>{
-    res.render("addPost");
+    blog.getCategories()
+        .then((data)=>{
+            res.render("addPost",{categories:data});
+            
+        })
+        .catch(()=>{res.render("addPost",{categories:[]})})
+    
 })
 
+app.get("/categories/add",(req,res) =>{
+    res.render("addCategory");
+})
 
 
 
@@ -94,62 +108,33 @@ cloudinary.config({
 
 const upload =multer();
 
-app.post("/posts/add",upload.single("featureImage"),(req,res) =>{
-    
-    let streamUpload = (req) => {
-    return new Promise((resolve, reject) => {
-        let stream = cloudinary.uploader.upload_stream(
-            (error, result) => {
-            if (result) {
-                resolve(result);
-            } else {
-                reject(error);
-            }
-            }
-        );
 
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
-    });
-    };
-
-    async function upload(req) {
-        let result = await streamUpload(req);
-        console.log(result);
-        return result;
-    }
-
-    upload(req).then((uploaded)=>{
-        //console.log(uploaded);
-        req.body.featureImage = uploaded.url;
-
-        blog.addPost(req.body);
-        
-        res.redirect('/posts');
-        
-    });
-    
-
-})
 
 
 blog.initialize()
 .then((message) => {
     console.log(message); // ['posts.json read successfully','categories.json read successfully'] if successful
     app.listen(HTTP_PORT);
-   
     
-    blog.getAllPosts()  //posts
+    
+    blog.getAllPosts()  
     .then((data) =>{
+        
+        //  posts
+        
+        
         app.get('/posts',(req,res) =>{      // /posts
             if(req.query.category){
                 
-                var p = [];
+                
                 get = async() =>{
                     
-                    const p = await blog.getPostsByCategory(req.query.category);
-                    res.render("posts",
-                    {data: p});
-                    console.log(p);
+                    let posts = await blog.getPostsByCategory(req.query.category);
+                    if (posts.length > 0){
+                        res.render("posts",{data: posts});
+                        console.log(posts);
+                    }
+                    else{res.render("posts",{message: "No Results"});}
                 }
                 get().catch(err => res.render("posts",{message : "request invalid"}));
                 
@@ -157,13 +142,13 @@ blog.initialize()
             else if(req.query.minDate){
                 console.log(req.query.minDate);
                 get = async() =>{
-
-                    let p = await blog.getPostsByMinDate(req.query.minDate);
-                    console.log(p);
-                    res.render("posts",
-                    {
-                        data: p
-                    });
+                    
+                    let posts = await blog.getPostsByMinDate(req.query.minDate);
+                    if (posts.length > 0){
+                        res.render("posts",{data: posts});
+                        console.log(posts);
+                    }
+                    else{res.render("posts",{message: "No Results"});}
 
                 }
                 get().catch((err) => res.render("posts",{
@@ -172,13 +157,15 @@ blog.initialize()
             }
             else{
                 console.log(data); 
-                res.render("posts",{
-                    data: data
-                });
+                if (data.length > 0){
+                    res.render("posts",{data: data});
+                }
+                else{res.render("posts",{message: "No Results"});}
             }
         })
+        
         app.get('/posts/:value',(req,res)=>{
-                
+            
             if(req.params["value"]){
                 
                 get = async() =>{
@@ -193,9 +180,67 @@ blog.initialize()
             }
         })
         
+        
+        app.post("/posts/add",upload.single("featureImage"),(req,res) =>{
+            
+                if(req.file){
+                    console.log("REQ FILE EXISTSTSSSSSSSSS")
+                    let streamUpload = (req) => {
+                        return new Promise((resolve, reject) => {
+                            let stream = cloudinary.uploader.upload_stream(
+                                (error, result) => {
+                                    if (result) {
+                                        resolve(result);
+                                    } else {
+                                        reject(error);
+                                    }
+                                }
+                                );
+                            
+                                streamifier.createReadStream(req.file.buffer).pipe(stream);
+        
+                              
+                            });
+                        };
+                        
+                        async function upload(req) {
+                            let result = await streamUpload(req);
+                            console.log(result);
+                            return result;
+                        }
+                        
+                        upload(req).then((uploaded)=>{
+                            console.log(uploaded);
+                            
+                            req.body.featureImage = uploaded.url;  
+                            
+                            blog.addPost(req.body); 
+                            res.redirect('/posts');
+                        });
+                }
+                else{
+                    
+                    req.body.featureImage = null;  
+
+                    blog.addPost(req.body);
+                  
+                    res.redirect('/posts');
+                }
+            
+        })
+
+        app.get("/posts/delete/:id",(req,res) =>{
+            if (req.params["id"]){   
+                blog.deletePostById(req.params["id"])
+                    .then(res.redirect("/posts"))
+                    .catch(res.status(500).send("Unable to Remove Post / Post not found"));
+            }
+        })
+        
+        //  Blog
         blog.getPublishedPosts() 
         .then((data) => {
-            app.get('/blog', async (req, res) => {  //blog
+            app.get('/blog', async (req, res) => {  
 
                 // to store properties for the view
                 let viewData = {};
@@ -295,16 +340,40 @@ blog.initialize()
                 
             });
 
-            
+            //  Category
 
-            blog.getCategories() //categories
+            blog.getCategories() 
             .then((data) =>{
                     app.get("/categories",(req,res) =>{
-                        res.render("categories",{
-                            data: data
-                        })
-                        
+                        if (data.length > 0){
+                            res.render("categories",{data: data})
+
+                        }
+                        else{
+                            res.render("categories",{message: "No Results"})
+                        }
+                    
+                    
                     });
+                   
+                    app.post("/categories/add",(req,res) =>{
+                        
+                        blog.addCategory(req.body);
+                        
+                        res.redirect('/categories');
+    
+                         
+                    });
+
+                    app.get("/categories/delete/:id",(req,res) =>{
+                        if (req.params["id"]){
+                            
+                            blog.deleteCategoryById(req.params["id"])
+                                .then(()=>{res.redirect("/categories")})
+                                .catch(() =>{res.status(500).send("Unable to Remove Category / Category not found")});
+                        }
+                    });
+                        
                     app.use((req, res) => {
                         res.status(404).render("404");
                     });
@@ -323,7 +392,6 @@ blog.initialize()
     })
     .catch((err) =>console.log(err));
     
-
 
 
 

@@ -1,1 +1,3 @@
-getPublishedPostsByCategory(req.query.category);
+})
+                // .catch(()=>{res.render("addPost",{categories:[]})})
+            
