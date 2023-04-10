@@ -328,7 +328,7 @@ app.get('/blog/:id', async (req, res) => {
         
         // if there's a "category" query, filter the returned posts by category
         if(req.query.category){
-            console.log("catgggg=>>>" +req.query.category)
+            
             // Obtain the published "posts" by category
             posts = await blog.getPublishedPostsByCategory(req.query.category);
         }else{
