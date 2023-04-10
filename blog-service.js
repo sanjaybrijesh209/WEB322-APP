@@ -115,7 +115,8 @@ function addPost(postData){
             title: postData.title,
             postDate: postData.postDate,
             featureImage: postData.featureImage,
-            published: postData.published
+            published: postData.published,
+            category: postData.category
         })
         .then(()=>{resolve('Post created successfully')})
         .catch((err)=>{reject('Unable to create Post: '+ err)});

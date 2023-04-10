@@ -1,3 +1,3 @@
-})
-                // .catch(()=>{res.render("addPost",{categories:[]})})
-            
+app.use((req, res) => {
+    res.status(404).render("404");
+});

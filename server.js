@@ -4,7 +4,7 @@
 *  of this assignment has been copied manually or electronically from any other source 
 *  (including 3rd party web sites) or distributed to other students.
 * 
-*  Name: ____Sanjay Brijesh___ Student ID: ___156653214___________ Date: ____2023-03-24____________
+*  Name: ____Sanjay Brijesh___ Student ID: ___156653214___________ Date: ____2023-04-09____________
 *
 *  Online (Cyclic) Link: ________https://tired-undershirt-elk.cyclic.app________________________________________________
 *
@@ -19,7 +19,8 @@ const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
 const exphbs = require('express-handlebars');
 const stripJs = require('strip-js');
-
+var authData = require('./auth-service');
+const clientSessions = require('client-sessions');
 const { Server } = require("http");
 
 var HTTP_PORT = process.env.port || 8080;
@@ -80,6 +81,31 @@ app.use(function(req,res,next){
     next();
 });
 
+// Setup client-sessions
+app.use(clientSessions({
+  cookieName: "session", // this is the object name that will be added to 'req'
+  secret: "application_web322", // this should be a long un-guessable string.
+  duration: 2 * 60 * 1000, // duration of the session in milliseconds (2 minutes)
+  activeDuration: 1000 * 60 // the session will be extended by this many ms each request (1 minute)
+}));
+
+app.use(function(req, res, next) {
+  res.locals.session = req.session;
+  next();
+});
+
+// This is a helper middleware function that checks if a user is logged in
+// we can use it in any route that we want to protect against unauthenticated access.
+// A more advanced version of this would include checks for authorization as well after
+// checking if the user is authenticated
+function ensureLogin(req, res, next) {
+  if (!req.session.user) {
+    res.redirect("/login");
+  } else {
+    next();
+  }
+}
+
 
 app.get("/",(req,res) =>{
     res.redirect("/blog"); // root redirected to about page (landing page)
@@ -88,11 +114,12 @@ app.get("/",(req,res) =>{
 
 
 app.get("/about",(req,res) =>{
+   
     res.render('about');
 });
 
 
-app.get("/posts/add",(req,res) =>{
+app.get("/posts/add",ensureLogin,(req,res) =>{
     blog.getCategories()
         .then((data)=>{
             res.render("addPost",{categories:data});
@@ -105,7 +132,7 @@ app.get("/posts/add",(req,res) =>{
 
 
 
-app.get('/posts',(req,res) =>{ 
+app.get('/posts',ensureLogin,(req,res) =>{ 
     
     blog.getAllPosts()  
     .then((data) =>{
@@ -153,7 +180,7 @@ app.get('/posts',(req,res) =>{
     })
     
     
-    app.get('/posts/:value',(req,res)=>{
+    app.get('/posts/:value',ensureLogin,(req,res)=>{
         
         if(req.params["value"]){
             
@@ -170,7 +197,7 @@ app.get('/posts',(req,res) =>{
     })
     
     
-    app.post("/posts/add",upload.single("featureImage"),(req,res) =>{
+    app.post("/posts/add",ensureLogin,upload.single("featureImage"),(req,res) =>{
         
         if(req.file){
             
@@ -218,7 +245,7 @@ app.get('/posts',(req,res) =>{
                 
             })
             
-            app.get("/posts/delete/:id",(req,res) =>{
+            app.get("/posts/delete/:id",ensureLogin,(req,res) =>{
                 if (req.params["id"]){   
                     blog.deletePostById(req.params["id"])
                     .then(res.redirect("/posts"))
@@ -232,7 +259,7 @@ app.get('/posts',(req,res) =>{
             
 //  Blog
     
-app.get('/blog', (req, res) => { 
+app.get('/blog',(req, res) => { 
     
     blog.getPublishedPosts()
     .then(async(data) =>{
@@ -301,6 +328,7 @@ app.get('/blog/:id', async (req, res) => {
         
         // if there's a "category" query, filter the returned posts by category
         if(req.query.category){
+            console.log("catgggg=>>>" +req.query.category)
             // Obtain the published "posts" by category
             posts = await blog.getPublishedPostsByCategory(req.query.category);
         }else{
@@ -344,7 +372,7 @@ app.get('/blog/:id', async (req, res) => {
 
 
 //  Category
-app.get("/categories",(req,res) =>{
+app.get("/categories",ensureLogin,(req,res) =>{
     blog.getCategories() 
     .then((data) =>{
         if (data.length > 0){
@@ -360,11 +388,11 @@ app.get("/categories",(req,res) =>{
     
 });
 
-app.get("/categories/add",(req,res) =>{
+app.get("/categories/add",ensureLogin,(req,res) =>{
     res.render("addCategory");
 })
 
-app.post("/categories/add",(req,res) =>{
+app.post("/categories/add",ensureLogin,(req,res) =>{
     
     blog.addCategory(req.body);
     
@@ -373,7 +401,7 @@ app.post("/categories/add",(req,res) =>{
     
 });
 
-app.get("/categories/delete/:id",(req,res) =>{
+app.get("/categories/delete/:id",ensureLogin,(req,res) =>{
     if (req.params["id"]){
         
         blog.deleteCategoryById(req.params["id"])
@@ -382,14 +410,65 @@ app.get("/categories/delete/:id",(req,res) =>{
     }
 });
 
-app.use((req, res) => {
-    res.status(404).render("404");
-});
 
 
 blog.initialize()
-.then((message) => {
-    console.log(message); // ['posts.json read successfully','categories.json read successfully'] if successful
-    app.listen(HTTP_PORT);
+.then(authData.initialize())
+.then(() => {
+    
+    app.listen(HTTP_PORT,() =>{console.log("app listening on: " + HTTP_PORT)});
 })
 .catch((err) =>{console.log(err)});  
+
+//assignment-6
+
+app.get('/login',(req,res)=>{
+    
+    res.render('login');
+});
+
+app.get('/register',(req,res)=>{
+   
+    
+    res.render('register');
+});
+
+app.post('/register',(req,res)=>{
+    
+    authData.registerUser(req.body)
+    .then(()=>{res.render("register",{successMessage: "User created"})})
+    .catch((err)=>{ res.render("register",{errorMessage: err,userName: req.body.userName});
+})
+})
+
+app.post('/login',(req,res)=>{
+    req.body.userAgent = req.get('User-Agent');
+    
+    authData.checkUser(req.body).then((user) => {
+        req.session.user = {
+            userName: user.userName, // authenticated user's userName
+            email: user.email,// authenticated user's email
+            loginHistory: user.loginHistory// authenticated user's loginHistory
+        }
+        
+        res.redirect('/posts');
+    })
+    .catch((err)=>{res.render('login',{errorMessage: err, userName: req.body.userName})})
+    
+});
+
+app.get('/logout',(req,res)=>{
+    req.session.reset();
+    res.redirect("/login");
+});
+
+app.get("/userHistory",ensureLogin,(req,res)=>{
+    
+    res.render("userHistory",{session:req.session });
+    
+});
+
+
+app.use((req, res) => {
+    res.status(404).render("404");
+});
